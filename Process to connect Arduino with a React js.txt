@@ -1,0 +1,142 @@
+To use the serialport node module in a React application, you need to understand that serialport is designed to work in a Node.js environment, which is server-side. React, on the other hand, runs in the browser, which is a client-side environment. Directly accessing serialport in a React application is not straightforward because the browser does not have access to Node.js modules.
+
+However, you can create a solution that involves using a Node.js server to handle the serial port communication and then communicate with this server from your React application.
+
+Here are the steps to achieve this:
+
+Step 1: Set Up the Node.js Server
+	1.Initialize a Node.js Project
+
+		Create a new directory for your server and initialize a new Node.js project:
+
+		#Terminal
+		mkdir serialport-server
+		cd serialport-server
+		npm init -y
+
+	2.Install the Required Modules
+
+		Install serialport, express and CORS Middleware:
+
+			#Terminal
+			npm install serialport express
+			npm install cors
+
+	3.Create the Server Script
+
+		Create a file named server.js and set up the server:
+
+		#javascript
+		const express = require('express');
+		const cors = require('cors');  // Import the cors middleware
+		const {SerialPort} = require('serialport');
+		const {ReadlineParser} = require('@serialport/parser-readline');
+
+		const app = express();
+		const port = 3001; // Server port
+
+		// Use the cors middleware
+		app.use(cors());
+
+		const serialPort = new SerialPort({
+			path:'COM3',
+			baudRate: 9600 
+		});
+
+		const parser = serialPort.pipe(new ReadlineParser({ delimiter: '\r\n'}));
+
+		// Endpoint to get data from the serial port
+		app.get('/serial-data', (req, res) => {
+			parser.once('data', (data) => {
+			  res.json({ data });
+			});
+		});
+
+		// Start the server
+		app.listen(port, () => {
+			console.log(`Server running on http://localhost:${port}`);
+		  });
+
+		serialPort.on('open', () => {
+			console.log('Arduino UNO is Connected Successfully!');
+			console.log('Fetching Data...');
+		});
+
+		parser.on('data', (data) => {
+			console.log('Received data:',data);
+		});
+
+		serialPort.on('error', (err) => {
+			console.error('Error:', err.message);
+		});
+		
+Step 2: Set Up the React App
+	1.Create a React App
+
+		If you don't already have a React app, create one:
+
+		#Terminal
+		npx create-react-app my-react-app
+		cd my-react-app
+		
+	2.Fetch Data from the Node.js Server
+
+		In your React app, you will fetch data from the Node.js server you set up.
+
+		The Fetch API is a built-in browser API for making HTTP requests. It's a modern replacement for XMLHttpRequest and is widely supported in modern browsers.
+
+		Modify your App.js to fetch data from the server:
+
+		#App.js
+		import React, { useState, useEffect } from 'react';
+
+		function App() {
+		  const [serialData, setSerialData] = useState('');
+
+		  useEffect(() => {
+			const fetchData = async () => {
+			  try {
+				const response = await fetch('http://localhost:3001/serial-data');
+				const result = await response.json();
+				setSerialData(result.data);
+			  } catch (error) {
+				console.error('Error fetching data', error);
+			  }
+			};
+
+			fetchData();
+		  }, []);
+
+		  return (
+			<div className="App">
+			  <header className="App-header">
+				<h1>Serial Port Data</h1>
+				<p>{serialData}</p>
+			  </header>
+			</div>
+		  );
+		}
+
+		export default App;
+
+Step 3: Run the Setup
+	1.Start the Node.js Server
+
+		In the serialport-server directory, start the Node.js server:
+
+		#Terminal
+		node server.js
+		
+	2.Start the React App
+
+		In the my-react-app directory, start the React development server:
+
+		#Terminal
+		npm start
+		
+Now, your React app will fetch data from the serial port via the Node.js server and display it.
+
+Summary
+Node.js Server: Handles serial port communication using serialport and serves data via an API endpoint using express.
+React App: Fetches data from the Node.js server using Fetch API and displays it.
+This approach separates concerns and leverages the strengths of both environments: Node.js for hardware communication and React for the user interface.
