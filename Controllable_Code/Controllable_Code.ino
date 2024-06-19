@@ -18,7 +18,24 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if(digitalRead(8) == HIGH && PinEight){
+  if (Serial.available() > 0) {
+    // Read the incoming string
+    String receivedData = Serial.readStringUntil('\n');
+    
+    // Print the received data to the serial monitor
+    Serial.println(receivedData);
+
+    // Process the received data (customize this part as needed)
+    // For example, you can control an LED based on the received data
+    if (receivedData == "ON") {
+      // Turn on the Built-In LED on board 
+      digitalWrite(LED_BUILTIN, HIGH);
+    } else if (receivedData == "OFF") {
+      // Turn off the Built-In LED on board 
+      digitalWrite(LED_BUILTIN, LOW);
+    }
+  }
+  else if(digitalRead(8) == HIGH && PinEight){
     PINEight();
     PinSeven = true;
     PinEight = false;
